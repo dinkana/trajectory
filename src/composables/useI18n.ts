@@ -52,8 +52,20 @@ const dictionaries = {
     deleteTitle: 'Удалить дерево?',
     deleteMessage: 'Это действие нельзя отменить. Весь прогресс изучения будет потерян.',
     delete: 'Удалить',
-    streakDays: 'дн.',
-    exportPng: 'Экспорт PNG'
+    exportPng: 'Экспорт PNG',
+    studied: 'Изучено',
+    notStarted: 'Не начато',
+    autoLayout: 'Авто-выравнивание',
+    exportProgress: 'Экспорт прогресса',
+    importProgress: 'Импорт прогресса',
+    importProgressTitle: 'Импорт прогресса',
+    importProgressDesc: 'Вставьте код экспорта прогресса',
+    importProgressBtn: 'Импортировать',
+    progressExported: 'Прогресс экспортирован',
+    progressImported: 'Прогресс импортирован',
+    progressImportError: 'Не удалось импортировать прогресс',
+    nodeColor: 'Цвет узла',
+    more: 'Ещё'
   },
   en: {
     appTitle: 'SkillTree',
@@ -106,8 +118,20 @@ const dictionaries = {
     deleteTitle: 'Delete tree?',
     deleteMessage: 'This action cannot be undone. All learning progress will be lost.',
     delete: 'Delete',
-    streakDays: 'days',
-    exportPng: 'Export PNG'
+    exportPng: 'Export PNG',
+    studied: 'Studied',
+    notStarted: 'Not started',
+    autoLayout: 'Auto Layout',
+    exportProgress: 'Export Progress',
+    importProgress: 'Import Progress',
+    importProgressTitle: 'Import Progress',
+    importProgressDesc: 'Paste progress export code',
+    importProgressBtn: 'Import',
+    progressExported: 'Progress exported',
+    progressImported: 'Progress imported',
+    progressImportError: 'Failed to import progress',
+    nodeColor: 'Node color',
+    more: 'More'
   }
 }
 

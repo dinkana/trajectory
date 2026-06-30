@@ -5,8 +5,13 @@ import { presetTrees } from '@/data/presetTrees'
 
 export const useTreesStore = defineStore('trees', () => {
   const stored = localStorage.getItem('trees')
-  const initialTrees = stored ? JSON.parse(stored) : [...presetTrees]
-  
+  const storedTrees: SkillTree[] = stored ? JSON.parse(stored) : []
+  const storedIds = new Set(storedTrees.map(t => t.id))
+  const initialTrees = [
+    ...presetTrees.filter(t => !storedIds.has(t.id)),
+    ...storedTrees
+  ]
+
   const trees = ref<SkillTree[]>(initialTrees)
   const completedNodes = ref<Record<string, string[]>>(
     JSON.parse(localStorage.getItem('progress') || '{}')
@@ -49,10 +54,8 @@ export const useTreesStore = defineStore('trees', () => {
     if (!completedNodes.value[treeId]) {
       completedNodes.value[treeId] = []
     }
-    
     const nodes = completedNodes.value[treeId]
     const index = nodes.indexOf(nodeId)
-    
     if (index === -1) {
       nodes.push(nodeId)
     } else {
@@ -69,6 +72,37 @@ export const useTreesStore = defineStore('trees', () => {
     return completedNodes.value[treeId] || []
   }
 
+  function exportProgress(): string {
+    return JSON.stringify({
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      progress: completedNodes.value
+    }, null, 2)
+  }
+
+  function importProgress(json: string): boolean {
+    try {
+      const data = JSON.parse(json)
+      if (!data || typeof data !== 'object') return false
+      const progress = data.progress
+      if (!progress || typeof progress !== 'object') return false
+
+      for (const treeId in progress) {
+        if (!Array.isArray(progress[treeId])) continue
+        const validNodes = progress[treeId].filter(
+          (id: unknown) => typeof id === 'string' && id.length > 0
+        )
+        if (validNodes.length > 0) {
+          completedNodes.value[treeId] = validNodes
+        }
+      }
+      saveProgress()
+      return true
+    } catch {
+      return false
+    }
+  }
+
   return {
     trees,
     addTree,
@@ -77,6 +111,8 @@ export const useTreesStore = defineStore('trees', () => {
     resetProgress,
     toggleNode,
     getTreeById,
-    getProgress
+    getProgress,
+    exportProgress,
+    importProgress
   }
 })
