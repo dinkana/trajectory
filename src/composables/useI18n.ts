@@ -67,7 +67,13 @@ const dictionaries = {
     progressImportError: 'Не удалось импортировать прогресс',
     nodeColor: 'Цвет узла',
     more: 'Ещё',
-    focusAvailable: 'Фокус на доступных'
+    focusAvailable: 'Фокус на доступных',
+    installApp: 'Установить приложение',
+    iosInstallTitle: 'Добавить на главный экран',
+    iosInstallDesc: 'Чтобы использовать SkillTree как приложение:',
+    iosInstallStep1: 'Нажмите кнопку «Поделиться» внизу браузера',
+    iosInstallStep2: 'Выберите «На экран Домой» и подтвердите',
+    gotIt: 'Понятно'
   },
   en: {
     appTitle: 'SkillTree',
@@ -135,7 +141,13 @@ const dictionaries = {
     progressImportError: 'Failed to import progress',
     nodeColor: 'Node color',
     more: 'More',
-    focusAvailable: 'Focus on available'
+    focusAvailable: 'Focus on available',
+    installApp: 'Install app',
+    iosInstallTitle: 'Add to Home Screen',
+    iosInstallDesc: 'To use SkillTree as an app:',
+    iosInstallStep1: 'Tap the Share button at the bottom of the browser',
+    iosInstallStep2: 'Choose "Add to Home Screen" and confirm',
+    gotIt: 'Got it'
   }
 }
 

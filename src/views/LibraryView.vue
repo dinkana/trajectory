@@ -5,6 +5,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { decodeTree, encodeTree } from '@/utils/encoding'
 import ImportModal from '@/components/ImportModal.vue'
 import { useI18n } from '@/composables/useI18n'
+import { useInstallPrompt } from '@/composables/useInstallPrompt'
 import { presetTrees } from '@/data/presetTrees'
 import type { SkillTree } from '@/types'
 
@@ -12,6 +13,7 @@ const treesStore = useTreesStore()
 const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
+const { canInstall, isIOS, install } = useInstallPrompt()
 
 const showImportModal = ref(false)
 const showShareToast = ref(false)
@@ -20,6 +22,7 @@ const searchQuery = ref('')
 const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(null)
 const showMoreMenu = ref(false)
 const progressFileInput = ref<HTMLInputElement | null>(null)
+const showIosInstallModal = ref(false)
 
 const filteredTrees = computed(() => {
   if (!searchQuery.value.trim()) return treesStore.trees
@@ -122,6 +125,14 @@ function cancelDelete() {
   showDeleteConfirm.value = null
 }
 
+async function handleInstall() {
+  if (isIOS.value) {
+    showIosInstallModal.value = true
+  } else {
+    await install()
+  }
+}
+
 onMounted(() => {
   const data = route.query.data as string
   if (data) {
@@ -146,6 +157,12 @@ onMounted(() => {
     <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
       <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{{ t('library') }}</h1>
       <div class="flex gap-2">
+        <button v-if="canInstall" @click="handleInstall" class="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium flex items-center gap-2 shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          {{ t('installApp') }}
+        </button>
         <button @click="showImportModal = true" class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition text-sm font-medium">
           {{ t('import') }}
         </button>
@@ -245,10 +262,9 @@ onMounted(() => {
     </div>
 
     <footer class="w-full text-center text-xs text-gray-500 dark:text-gray-400 mt-10 pt-4 pb-6 border-t border-gray-300 dark:border-gray-700">
-      Инструмент создан Din Kana.<br>Для сотрудничества:
+      Инструмент создан Din Kana, PM/BA.<br>Для сотрудничества:
       <a href="https://t.me/din_kana" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">Telegram</a> ·
-      <a href="https://www.linkedin.com/in/din-kana/" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">LinkedIn</a><br>
-      <a href="https://pay.cloudtips.ru/p/d60d022f" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">Поблагодарить автора</a>
+      <a href="https://www.linkedin.com/in/din-kana/" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">LinkedIn</a>
     </footer>
 
     <ImportModal v-if="showImportModal" @close="showImportModal = false" />
@@ -273,6 +289,26 @@ onMounted(() => {
             {{ t('delete') }}
           </button>
         </div>
+      </div>
+    </div>
+
+    <div v-if="showIosInstallModal" class="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-gray-300 dark:border-gray-700 animate-win-modal">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ t('iosInstallTitle') }}</h2>
+        <p class="text-gray-600 dark:text-gray-400 mb-4">{{ t('iosInstallDesc') }}</p>
+        <ol class="space-y-3 mb-6">
+          <li class="flex items-start gap-3 text-gray-800 dark:text-gray-200">
+            <span class="flex-shrink-0 w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
+            <span class="text-sm">{{ t('iosInstallStep1') }}</span>
+          </li>
+          <li class="flex items-start gap-3 text-gray-800 dark:text-gray-200">
+            <span class="flex-shrink-0 w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
+            <span class="text-sm">{{ t('iosInstallStep2') }}</span>
+          </li>
+        </ol>
+        <button @click="showIosInstallModal = false" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-medium">
+          {{ t('gotIt') }}
+        </button>
       </div>
     </div>
   </div>
