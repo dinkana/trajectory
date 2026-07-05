@@ -8,38 +8,36 @@
 }
 
 @keyframes pulse-edge {
-  0% {
-    stroke-dasharray: 0 1000;
-    opacity: 1;
-  }
-  50% {
-    stroke-dasharray: 40 1000;
-    opacity: 1;
-  }
-  100% {
-    stroke-dasharray: 40 1000;
-    stroke-dashoffset: -100;
-    opacity: 0;
-  }
+  0% { stroke-dasharray: 0 1000; opacity: 1; }
+  50% { stroke-dasharray: 40 1000; opacity: 1; }
+  100% { stroke-dasharray: 40 1000; stroke-dashoffset: -100; opacity: 0; }
 }
-
 .edge-pulse {
   animation: pulse-edge 0.8s ease-out forwards;
 }
 
 @keyframes fade-in-scale {
-  0% {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
 }
-
 .animate-win-modal {
   animation: fade-in-scale 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slide-up {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slide-right {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(0); }
+}
+.animate-slide-right {
+  animation: slide-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .export-hide {

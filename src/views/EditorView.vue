@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useTreesStore } from '@/stores/trees'
 import { useI18n } from '@/composables/useI18n'
-import type { SkillTree, SkillNode } from '@/types'
+import type { SkillTree, SkillNode, Resource } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -30,25 +30,36 @@ const history = ref<SkillTree[]>([])
 const selectedNodeId = ref<string | null>(null)
 const isCreating = ref(false)
 const isDirty = ref(false)
+
 const connectingFrom = ref<string | null>(null)
 const ghostLine = ref({ x1: 0, y1: 0, x2: 0, y2: 0 })
+
 const draggingNode = ref<string | null>(null)
 const dragStart = ref({ x: 0, y: 0 })
 const nodeStartPos = ref({ x: 0, y: 0 })
 const hasDragged = ref(false)
+
 const viewBox = ref({ x: 0, y: 0, w: 1200, h: 800 })
 const isPanning = ref(false)
 const panStart = ref({ x: 0, y: 0 })
+
 const svgRef = ref<SVGSVGElement | null>(null)
 const isEditing = ref(false)
+
 const touchStartDist = ref(0)
 const touchStartViewBox = ref({ x: 0, y: 0, w: 0, h: 0 })
-const showDescModal = ref(false)
-const descDraft = ref('')
+
+const showNodeSettingsModal = ref(false)
 const showColorPicker = ref(false)
 const showMetaModal = ref(false)
 const showToolsSheet = ref(false)
 const showColorPickerSheet = ref(false)
+
+// Drafts for Node Settings
+const descDraft = ref('')
+const cheatsheetDraft = ref('')
+const timeDraft = ref(0)
+const resourcesDraft = ref<{ title: string, url: string, type: string }[]>([])
 
 const NODE_COLORS = [
   '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#6b7280'
@@ -162,6 +173,7 @@ function autoLayout() {
   edges.forEach(e => incomingMap.get(e.to)?.push(e.from))
   const levelMap = new Map<string, number>()
   const visited = new Set<string>()
+
   function computeLevel(nodeId: string): number {
     if (levelMap.has(nodeId)) return levelMap.get(nodeId)!
     if (visited.has(nodeId)) return 0
@@ -176,6 +188,7 @@ function autoLayout() {
     levelMap.set(nodeId, level)
     return level
   }
+
   nodes.forEach(n => computeLevel(n.id))
   const layers = new Map<number, SkillNode[]>()
   nodes.forEach(n => {
@@ -183,9 +196,11 @@ function autoLayout() {
     if (!layers.has(level)) layers.set(level, [])
     layers.get(level)!.push(n)
   })
+
   const horizontalSpacing = 220
   const verticalSpacing = 130
   const startY = 80
+
   layers.forEach((layerNodes, level) => {
     const layerWidth = (layerNodes.length - 1) * horizontalSpacing
     const startX = 600 - layerWidth / 2
@@ -194,11 +209,17 @@ function autoLayout() {
       node.y = snap(startY + level * verticalSpacing)
     })
   })
+
   const allYs = nodes.map(n => n.y)
   const minY = Math.min(...allYs)
   const offsetX = 600 - (Math.min(...nodes.map(n => n.x)) + Math.max(...nodes.map(n => n.x))) / 2
   const offsetY = 100 - minY
-  nodes.forEach(n => { n.x = snap(n.x + offsetX); n.y = snap(n.y + offsetY) })
+
+  nodes.forEach(n => {
+    n.x = snap(n.x + offsetX)
+    n.y = snap(n.y + offsetY)
+  })
+
   const xs = nodes.map(n => n.x)
   const ys = nodes.map(n => n.y)
   viewBox.value = {
@@ -397,23 +418,45 @@ function renameNode(node: SkillNode) {
   }
 }
 
-function openDescModal() {
+function openNodeSettings() {
   if (!selectedNodeId.value) return
   const node = tree.value.nodes.find(n => n.id === selectedNodeId.value)
   if (node) {
     descDraft.value = node.description || ''
-    showDescModal.value = true
+    cheatsheetDraft.value = node.cheatsheet || ''
+    timeDraft.value = node.timeHours || 0
+    resourcesDraft.value = node.resources ? JSON.parse(JSON.stringify(node.resources)) : []
+    showNodeSettingsModal.value = true
   }
 }
 
-function saveDesc() {
+function addResource() {
+  resourcesDraft.value.push({ title: '', url: '', type: 'article' })
+}
+
+function removeResource(index: number) {
+  resourcesDraft.value.splice(index, 1)
+}
+
+function saveNodeSettings() {
   if (!selectedNodeId.value) return
   const node = tree.value.nodes.find(n => n.id === selectedNodeId.value)
   if (node) {
     pushHistory()
     node.description = descDraft.value.trim() || undefined
+    node.cheatsheet = cheatsheetDraft.value.trim() || undefined
+    node.timeHours = timeDraft.value > 0 ? timeDraft.value : undefined
+    
+    const validResources = resourcesDraft.value
+      .filter(r => r.title.trim() && r.url.trim())
+      .map(r => ({
+        title: r.title.trim(),
+        url: r.url.trim(),
+        type: r.type as Resource['type']
+      }))
+    node.resources = validResources.length > 0 ? validResources : undefined
   }
-  showDescModal.value = false
+  showNodeSettingsModal.value = false
 }
 
 function deleteSelected() {
@@ -454,7 +497,7 @@ function handleKeydown(e: KeyboardEvent) {
     isCreating.value = false
     selectedNodeId.value = null
     connectingFrom.value = null
-    showDescModal.value = false
+    showNodeSettingsModal.value = false
     showColorPicker.value = false
     showMetaModal.value = false
     showToolsSheet.value = false
@@ -475,7 +518,7 @@ function saveTree() {
 
 const isRenameActive = computed(() => !!selectedNodeId.value)
 const isDeleteActive = computed(() => !!selectedNodeId.value)
-const isDescActive = computed(() => !!selectedNodeId.value)
+const isSettingsActive = computed(() => !!selectedNodeId.value)
 const isColorActive = computed(() => !!selectedNodeId.value)
 </script>
 
@@ -483,18 +526,17 @@ const isColorActive = computed(() => !!selectedNodeId.value)
   <div class="flex flex-col h-[calc(100vh-65px)] bg-gray-100 dark:bg-gray-900">
     <div class="h-12 sm:h-16 px-2 sm:px-4 bg-white dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 z-10 flex items-center justify-between">
       <button @click="router.push({ name: 'library' })" class="p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
       </button>
-
       <button @click="showMetaModal = true" class="flex-1 mx-2 text-center truncate text-sm font-semibold text-gray-900 dark:text-gray-100 sm:hidden">
         {{ tree.title || t('editorTitlePlaceholder') }}
       </button>
-
       <div class="hidden sm:flex flex-1 gap-3 items-center justify-center">
         <input v-model="tree.title" @input="isDirty = true" :placeholder="t('editorTitlePlaceholder')" class="w-64 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none" />
         <input v-model="tree.description" @input="isDirty = true" :placeholder="t('editorDescPlaceholder')" class="w-64 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none" />
       </div>
-
       <button @click="saveTree" class="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium whitespace-nowrap">
         {{ t('editorSave') }}
       </button>
@@ -547,7 +589,7 @@ const isColorActive = computed(() => !!selectedNodeId.value)
           v-for="node in tree.nodes"
           :key="node.id"
           :data-node-id="node.id"
-          :transform="`translate(${node.x},${node.y})`"
+          :transform="`translate(${node.x}, ${node.y})`"
           class="node-group"
           :class="draggingNode === node.id ? 'cursor-grabbing' : 'cursor-grab'"
           @mousedown="handleNodeMouseDown($event, node)"
@@ -594,8 +636,8 @@ const isColorActive = computed(() => !!selectedNodeId.value)
         <button @click="selectedNodeId && renameNode(tree.nodes.find(n => n.id === selectedNodeId)!)" :disabled="!isRenameActive" class="px-4 py-2 rounded-lg text-sm font-medium transition bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed">
           {{ t('editorRename') }}
         </button>
-        <button @click="openDescModal" :disabled="!isDescActive" class="px-4 py-2 rounded-lg text-sm font-medium transition bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed">
-          {{ t('editorDescription') }}
+        <button @click="openNodeSettings" :disabled="!isSettingsActive" class="px-4 py-2 rounded-lg text-sm font-medium transition bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed">
+          {{ t('nodeSettings') }}
         </button>
         <div class="relative">
           <button @click="showColorPicker = !showColorPicker" :disabled="!isColorActive" class="px-4 py-2 rounded-lg text-sm font-medium transition bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed">
@@ -620,8 +662,8 @@ const isColorActive = computed(() => !!selectedNodeId.value)
 
       <!-- Mobile FAB -->
       <button @click="showToolsSheet = true" class="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-xl flex items-center justify-center z-20 hover:bg-blue-700 transition-transform active:scale-95 border-4 border-white dark:border-gray-900 sm:hidden">
-        <svg v-if="!selectedNodeId" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-        <svg v-else class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+        <svg v-if="!selectedNodeId" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+        <svg v-else class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
       </button>
     </div>
 
@@ -631,54 +673,52 @@ const isColorActive = computed(() => !!selectedNodeId.value)
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showToolsSheet = false; showColorPickerSheet = false"></div>
         <div class="relative w-full bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl p-5 pb-8 border-t border-gray-200 dark:border-gray-700 transform transition-transform">
           <div class="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-
           <template v-if="showColorPickerSheet">
-            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 text-center">{{ t('colorBtn') }}</h3>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 text-center">{{ t('nodeColor') }}</h3>
             <div class="flex flex-wrap justify-center gap-3 mb-2">
               <button v-for="color in NODE_COLORS" :key="color" @click="setNodeColor(color); showColorPickerSheet = false" class="w-10 h-10 rounded-full border-2 transition-transform hover:scale-110" :class="selectedNode?.color === color ? 'border-gray-900 dark:border-white scale-110' : 'border-transparent'" :style="{ backgroundColor: color }" />
               <button @click="setNodeColor(''); showColorPickerSheet = false" class="w-10 h-10 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 transition-transform hover:scale-110 flex items-center justify-center text-sm text-gray-500">✕</button>
             </div>
           </template>
-
           <template v-else>
             <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 text-center">
-              {{ selectedNodeId ? t('nodeActions') : t('editorTools') }}
+              {{ selectedNodeId ? t('nodeSettings') : t('treeSettings') }}
             </h3>
             <div class="grid grid-cols-2 gap-3">
               <template v-if="!selectedNodeId">
                 <button @click="isCreating = !isCreating; showToolsSheet = false" class="flex flex-col items-center justify-center p-4 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                  <span class="text-sm font-medium">{{ t('createNode') }}</span>
+                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                  <span class="text-sm font-medium">{{ t('editorCreate') }}</span>
                 </button>
                 <button @click="autoLayout(); showToolsSheet = false" :disabled="tree.nodes.length === 0" class="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600 disabled:opacity-40">
-                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
-                  <span class="text-sm font-medium">{{ t('autoLayoutBtn') }}</span>
+                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>
+                  <span class="text-sm font-medium">{{ t('autoLayout') }}</span>
                 </button>
                 <button @click="undo(); showToolsSheet = false" :disabled="history.length === 0" class="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600 disabled:opacity-40">
-                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                  <span class="text-sm font-medium">{{ t('undoBtn') }}</span>
+                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                  <span class="text-sm font-medium">{{ t('editorUndo') }}</span>
                 </button>
                 <button @click="showMetaModal = true; showToolsSheet = false" class="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600">
-                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                  <span class="text-sm font-medium">{{ t('settingsBtn') }}</span>
+                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  <span class="text-sm font-medium">{{ t('treeSettings') }}</span>
                 </button>
               </template>
               <template v-else>
                 <button @click="selectedNode && renameNode(selectedNode); showToolsSheet = false" class="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600">
-                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                  <span class="text-sm font-medium">{{ t('renameBtn') }}</span>
+                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  <span class="text-sm font-medium">{{ t('editorRename') }}</span>
                 </button>
-                <button @click="openDescModal(); showToolsSheet = false" class="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600">
-                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                  <span class="text-sm font-medium">{{ t('descBtn') }}</span>
+                <button @click="openNodeSettings(); showToolsSheet = false" class="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600">
+                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  <span class="text-sm font-medium">{{ t('nodeSettings') }}</span>
                 </button>
                 <button @click="showColorPickerSheet = true" class="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600">
-                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
-                  <span class="text-sm font-medium">{{ t('colorBtn') }}</span>
+                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                  <span class="text-sm font-medium">{{ t('nodeColor') }}</span>
                 </button>
                 <button @click="deleteSelected(); showToolsSheet = false" class="flex flex-col items-center justify-center p-4 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800">
-                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                  <span class="text-sm font-medium">{{ t('deleteBtn') }}</span>
+                  <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  <span class="text-sm font-medium">{{ t('editorDelete') }}</span>
                 </button>
               </template>
             </div>
@@ -687,22 +727,58 @@ const isColorActive = computed(() => !!selectedNodeId.value)
       </div>
     </Teleport>
 
-    <div v-if="showDescModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 border border-gray-300 dark:border-gray-700">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{{ t('editorDescModalTitle') }}</h2>
-        <textarea
-          v-model="descDraft"
-          rows="5"
-          :placeholder="t('editorDescPlaceholderModal')"
-          class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-        ></textarea>
+    <!-- Node Settings Modal -->
+    <div v-if="showNodeSettingsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg p-6 border border-gray-300 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{{ t('nodeSettings') }}</h2>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('editorDescription') }}</label>
+          <textarea v-model="descDraft" rows="2" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cheatsheet') }}</label>
+          <textarea v-model="cheatsheetDraft" rows="3" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none resize-none font-mono text-sm"></textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('timeHours') }}</label>
+          <input type="number" min="0" step="0.5" v-model.number="timeDraft" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('resources') }}</label>
+            <button @click="addResource" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">+ {{ t('addResource') }}</button>
+          </div>
+          <div class="space-y-2">
+            <div v-for="(res, index) in resourcesDraft" :key="index" class="flex gap-2 items-start p-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+              <div class="flex-1 space-y-2">
+                <input v-model="res.title" :placeholder="t('resTitle')" class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                <input v-model="res.url" :placeholder="t('resUrl')" class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                <select v-model="res.type" class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                  <option value="article">{{ t('typeArticle') }}</option>
+                  <option value="video">{{ t('typeVideo') }}</option>
+                  <option value="course">{{ t('typeCourse') }}</option>
+                  <option value="docs">{{ t('typeDocs') }}</option>
+                  <option value="tool">{{ t('typeTool') }}</option>
+                  <option value="book">{{ t('typeBook') }}</option>
+                </select>
+              </div>
+              <button @click="removeResource(index)" class="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded">✕</button>
+            </div>
+          </div>
+        </div>
+
         <div class="flex justify-end gap-3 mt-6">
-          <button @click="showDescModal = false" class="px-4 py-2 text-gray-800 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-300 dark:border-gray-600">{{ t('cancel') }}</button>
-          <button @click="saveDesc" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">{{ t('save') }}</button>
+          <button @click="showNodeSettingsModal = false" class="px-4 py-2 text-gray-800 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-300 dark:border-gray-600">{{ t('cancel') }}</button>
+          <button @click="saveNodeSettings" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">{{ t('save') }}</button>
         </div>
       </div>
     </div>
 
+    <!-- Meta Modal -->
     <div v-if="showMetaModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 border border-gray-300 dark:border-gray-700">
         <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{{ t('treeSettings') }}</h2>
