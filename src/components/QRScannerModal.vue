@@ -42,7 +42,7 @@ onMounted(async () => {
           error.value = t('importErrorInvalid')
         }
       },
-      (errorMessage) => {
+      () => {
         // ignore parse errors
       }
     )
