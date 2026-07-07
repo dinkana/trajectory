@@ -1,7 +1,7 @@
 {
-  "name": "SkillTree",
-  "short_name": "SkillTree",
-  "description": "Visual learning skills tracker",
+  "name": "Траектория",
+  "short_name": "Траектория",
+  "description": "Социальный навигатор для подростков",
   "theme_color": "#3b82f6",
   "background_color": "#ffffff",
   "display": "standalone",

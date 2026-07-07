@@ -5,7 +5,7 @@ import svgLoader from 'vite-svg-loader'
 import { resolve } from 'path'
 
 export default defineConfig({
-  base: '/skilltree/', // Замените 'skilltree' на точное название вашего репозитория на GitHub
+  base: '/',
   plugins: [
     vue(),
     svgLoader(),
@@ -13,9 +13,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'robots.txt', 'og-image.png'],
       manifest: {
-        name: 'SkillTree',
-        short_name: 'SkillTree',
-        description: 'Visual learning skills tracker',
+        name: 'Траектория',
+        short_name: 'Траектория',
+        description: 'Социальный навигатор для подростков',
         theme_color: '#3b82f6',
         background_color: '#ffffff',
         display: 'standalone',

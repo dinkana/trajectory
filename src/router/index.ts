@@ -18,6 +18,11 @@ const router = createRouter({
       path: '/tracker/:id',
       name: 'tracker',
       component: () => import('@/views/TrackerView.vue')
+    },
+    {
+      path: '/methodology',
+      name: 'methodology',
+      component: () => import('@/views/MethodologyView.vue')
     }
   ]
 })

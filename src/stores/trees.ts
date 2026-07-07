@@ -3,16 +3,25 @@ import { ref } from 'vue'
 import type { SkillTree } from '@/types'
 import { presetTrees } from '@/data/presetTrees'
 
+function generateUniqueName(baseName: string, existingNames: string[]): string {
+  if (!existingNames.includes(baseName)) return baseName
+  let counter = 1
+  while (existingNames.includes(`${baseName} ${counter}`)) {
+    counter++
+  }
+  return `${baseName} ${counter}`
+}
+
 export const useTreesStore = defineStore('trees', () => {
   const stored = localStorage.getItem('trees')
   const storedTrees: SkillTree[] = stored ? JSON.parse(stored) : []
   const storedIds = new Set(storedTrees.map(t => t.id))
-  
+
   const initialTrees = [
     ...presetTrees.filter(t => !storedIds.has(t.id)),
     ...storedTrees
   ]
-  
+
   const trees = ref<SkillTree[]>(initialTrees)
   const completedNodes = ref<Record<string, string[]>>(
     JSON.parse(localStorage.getItem('progress') || '{}')
@@ -23,20 +32,18 @@ export const useTreesStore = defineStore('trees', () => {
       localStorage.setItem(key, JSON.stringify(data))
     } catch (e) {
       if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-        alert('Хранилище браузера переполнено. Экспортируйте данные и удалите ненужные деревья.')
+        alert('Хранилище браузера переполнено. Экспортируйте данные и удалите ненужные сценарии.')
       }
     }
   }
 
-  function saveTrees() {
-    safeSave('trees', trees.value)
-  }
-
-  function saveProgress() {
-    safeSave('progress', completedNodes.value)
-  }
+  function saveTrees() { safeSave('trees', trees.value) }
+  function saveProgress() { safeSave('progress', completedNodes.value) }
 
   function addTree(tree: SkillTree) {
+    const existingNames = trees.value.map(t => t.title)
+    tree.title = generateUniqueName(tree.title, existingNames)
+    tree.id = crypto.randomUUID()
     trees.value.push(tree)
     saveTrees()
   }
@@ -65,10 +72,8 @@ export const useTreesStore = defineStore('trees', () => {
     if (!completedNodes.value[treeId]) {
       completedNodes.value[treeId] = []
     }
-    
     const nodes = completedNodes.value[treeId]
     const index = nodes.indexOf(nodeId)
-    
     if (index === -1) {
       nodes.push(nodeId)
     } else {
@@ -85,38 +90,53 @@ export const useTreesStore = defineStore('trees', () => {
     return completedNodes.value[treeId] || []
   }
 
-  function exportProgress(): string {
+  function exportAllScenarios(): string {
     return JSON.stringify({
       version: 1,
       exportedAt: new Date().toISOString(),
+      trees: trees.value,
       progress: completedNodes.value
     }, null, 2)
   }
 
-  function importProgress(json: string): boolean {
+  function importAllScenarios(json: string): boolean {
     try {
       const data = JSON.parse(json)
-      if (!data || typeof data !== 'object') return false
+      if (!data || !Array.isArray(data.trees)) return false
       
-      const progress = data.progress
-      if (!progress || typeof progress !== 'object') return false
+      data.trees.forEach((tree: SkillTree) => {
+        addTree({ ...tree })
+      })
       
-      for (const treeId in progress) {
-        if (!Array.isArray(progress[treeId])) continue
-        
-        const validNodes = progress[treeId].filter(
-          (id: unknown) => typeof id === 'string' && id.length > 0
-        )
-        
-        if (validNodes.length > 0) {
-          completedNodes.value[treeId] = validNodes
-        }
-      }
-      saveProgress()
       return true
     } catch {
       return false
     }
+  }
+
+  function generateFullReport(): string {
+    const treesWithProgress = trees.value.filter(t => getProgress(t.id).length > 0)
+    if (treesWithProgress.length === 0) return ''
+    
+    let report = `ОТЧЕТ О ПРОХОЖДЕНИИ ТРАЕКТОРИЙ\n`
+    report += `Дата: ${new Date().toLocaleDateString('ru-RU')}\n`
+    report += `Количество сценариев: ${treesWithProgress.length}\n\n`
+    
+    treesWithProgress.forEach((tree, idx) => {
+      const completed = tree.nodes.filter(n => getProgress(tree.id).includes(n.id))
+      report += `${idx + 1}. ${tree.title}\n`
+      report += `   Прогресс: ${completed.length} из ${tree.nodes.length} шагов\n`
+      if (completed.length > 0) {
+        report += `   Выполненные шаги:\n`
+        completed.forEach((n, i) => {
+          report += `     ${i + 1}. ${n.title}\n`
+        })
+      }
+      report += `\n`
+    })
+    
+    report += `Документ сформирован в приложении «Траектория».`
+    return report
   }
 
   return {
@@ -128,7 +148,8 @@ export const useTreesStore = defineStore('trees', () => {
     toggleNode,
     getTreeById,
     getProgress,
-    exportProgress,
-    importProgress
+    exportAllScenarios,
+    importAllScenarios,
+    generateFullReport
   }
 })

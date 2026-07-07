@@ -32,3 +32,4 @@ export interface SkillTree {
 
 export type Theme = 'light' | 'dark' | 'system';
 export type Locale = 'ru' | 'en';
+export type UserRole = 'mentor' | 'student';

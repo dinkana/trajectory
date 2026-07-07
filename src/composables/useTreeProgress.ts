@@ -6,7 +6,7 @@ import type { SkillTree } from '@/types'
 export function useTreeProgress(tree: Ref<SkillTree | null>) {
   const treesStore = useTreesStore()
   const settings = useSettingsStore()
-  
+
   const completedNodes = ref<string[]>([])
   const showWinModal = ref(false)
   const pulsingEdges = ref<string[]>([])
@@ -58,7 +58,6 @@ export function useTreeProgress(tree: Ref<SkillTree | null>) {
   function toggleNode(nodeId: string) {
     if (!tree.value) return
     if (!isUnlocked(nodeId) && !isCompleted(nodeId)) return
-    
     treesStore.toggleNode(tree.value.id, nodeId)
     completedNodes.value = treesStore.getProgress(tree.value.id)
     if (isCompleted(nodeId)) triggerPulse(nodeId)
@@ -87,6 +86,23 @@ export function useTreeProgress(tree: Ref<SkillTree | null>) {
     })
   }
 
+  function generateTextReport(): string {
+    if (!tree.value) return ''
+    const completed = tree.value.nodes.filter(n => completedNodes.value.includes(n.id))
+    if (completed.length === 0) return 'Нет пройденных шагов.'
+    
+    let report = `ОТЧЕТ О ПРОХОЖДЕНИИ ТРАЕКТОРИИ\n`
+    report += `Сценарий: ${tree.value.title}\n`
+    report += `Дата: ${new Date().toLocaleDateString('ru-RU')}\n`
+    report += `Прогресс: ${completed.length} из ${tree.value.nodes.length} шагов\n\n`
+    report += `Выполненные шаги:\n`
+    completed.forEach((n, i) => {
+      report += `${i + 1}. ${n.title}\n`
+    })
+    report += `\nДокумент сформирован в приложении «Траектория».`
+    return report
+  }
+
   watch(() => completedNodes.value.length, (newLen) => {
     if (tree.value && tree.value.nodes.length > 0 && newLen === tree.value.nodes.length) {
       setTimeout(() => { showWinModal.value = true }, 800)
@@ -94,8 +110,20 @@ export function useTreeProgress(tree: Ref<SkillTree | null>) {
   })
 
   return {
-    completedNodes, showWinModal, pulsingEdges, hoursPerDay,
-    remainingHours, totalHours, completionDate, progress,
-    initProgress, isUnlocked, isCompleted, toggleNode, resetProgress, updateHoursPerDay
+    completedNodes,
+    showWinModal,
+    pulsingEdges,
+    hoursPerDay,
+    remainingHours,
+    totalHours,
+    completionDate,
+    progress,
+    initProgress,
+    isUnlocked,
+    isCompleted,
+    toggleNode,
+    resetProgress,
+    updateHoursPerDay,
+    generateTextReport
   }
 }

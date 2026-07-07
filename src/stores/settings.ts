@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import type { Theme, Locale } from '@/types'
+import type { Theme, Locale, UserRole } from '@/types'
 
 export const useSettingsStore = defineStore('settings', () => {
   const theme = ref<Theme>((localStorage.getItem('theme') as Theme) || 'system')
   const locale = ref<Locale>((localStorage.getItem('locale') as Locale) || 'ru')
+  const userRole = ref<UserRole>((localStorage.getItem('userRole') as UserRole) || 'student')
 
   function applyTheme() {
     const isDark = theme.value === 'dark' || 
@@ -23,12 +24,19 @@ export const useSettingsStore = defineStore('settings', () => {
     try { localStorage.setItem('locale', newLocale) } catch {}
   }
 
+  function setUserRole(newRole: UserRole) {
+    userRole.value = newRole
+    try { localStorage.setItem('userRole', newRole) } catch {}
+  }
+
   watch(theme, applyTheme, { immediate: true })
 
   return {
     theme,
     locale,
+    userRole,
     setTheme,
-    setLocale
+    setLocale,
+    setUserRole
   }
 })

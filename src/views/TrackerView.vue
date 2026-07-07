@@ -16,37 +16,34 @@ const treesStore = useTreesStore()
 const { t } = useI18n()
 
 const isDark = ref(document.documentElement.classList.contains('dark'))
-const observer = new MutationObserver(()=>{
+const observer = new MutationObserver(() => {
   isDark.value = document.documentElement.classList.contains('dark')
 })
 
 const tree = ref<SkillTree | null>(null)
 const canvasRef = ref<InstanceType<typeof TrackerCanvas> | null>(null)
-const svgRef = computed(()=> canvasRef.value?.svgRef || null)
+const svgRef = computed(() => canvasRef.value?.svgRef || null)
 const selectedNodeForInfo = ref<string | null>(null)
+const showReportToast = ref(false)
 
-const { viewBox, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel, handleTouchStart, handleTouchMove, handleTouchEnd, focusAvailable } =
-  useCanvasNavigation(svgRef)
-
-const { completedNodes, showWinModal, pulsingEdges, hoursPerDay, remainingHours, totalHours, completionDate, progress, initProgress, isUnlocked, isCompleted, toggleNode, resetProgress, updateHoursPerDay } = useTreeProgress(tree)
+const { viewBox, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel, handleTouchStart, handleTouchMove, handleTouchEnd, focusAvailable } = useCanvasNavigation(svgRef)
+const { completedNodes, showWinModal, pulsingEdges, hoursPerDay, remainingHours, totalHours, completionDate, progress, initProgress, isUnlocked, isCompleted, toggleNode, resetProgress, updateHoursPerDay, generateTextReport } = useTreeProgress(tree)
 
 const selectedNodeData = computed((): SkillNode | null => {
-  if(!selectedNodeForInfo.value || !tree.value) return null
-  return tree.value.nodes.find(n=> n.id=== selectedNodeForInfo.value) || null
+  if (!selectedNodeForInfo.value || !tree.value) return null
+  return tree.value.nodes.find(n => n.id === selectedNodeForInfo.value) || null
 })
 
-onMounted(()=>{
+onMounted(() => {
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
   const id = route.params.id as string
   const found = treesStore.getTreeById(id)
-  if(!found){ router.replace({ name: 'library' }); return }
-  
+  if (!found) { router.replace({ name: 'library' }); return }
   tree.value = found
   initProgress()
-  
-  if(tree.value.nodes.length > 0){
-    const xs = tree.value.nodes.map(n=> n.x)
-    const ys = tree.value.nodes.map(n=> n.y)
+  if (tree.value.nodes.length > 0) {
+    const xs = tree.value.nodes.map(n => n.x)
+    const ys = tree.value.nodes.map(n => n.y)
     viewBox.value = {
       x: Math.min(...xs) - 150,
       y: Math.min(...ys) - 100,
@@ -56,34 +53,49 @@ onMounted(()=>{
   }
 })
 
-onUnmounted(()=>{ observer.disconnect() })
+onUnmounted(() => { observer.disconnect() })
 
-function handleBgClick(){
+function handleBgClick() {
   selectedNodeForInfo.value = null
 }
 
-function handleNodeClick(nodeId: string){
+function handleNodeClick(nodeId: string) {
   selectedNodeForInfo.value = nodeId
 }
 
-function handleToggleNode(){
-  if(selectedNodeForInfo.value){
+function handleToggleNode() {
+  if (selectedNodeForInfo.value) {
     toggleNode(selectedNodeForInfo.value)
     selectedNodeForInfo.value = null
   }
 }
 
-async function handleExportPortfolio(){
-  if(tree.value){
+async function handleExportPortfolio() {
+  if (tree.value) {
     await exportPortfolioToPng(tree.value, completedNodes.value, isDark.value)
   }
 }
 
-function handleResetProgress(){
-  if(confirm(t('resetConfirm'))){
+function handleCopyReport() {
+  if (completedNodes.value.length === 0) {
+    statusToast.value = { message: t('noCompletedSteps'), type: 'error' }
+    setTimeout(() => { statusToast.value = null }, 2500)
+    return
+  }
+  const report = generateTextReport()
+  navigator.clipboard.writeText(report).then(() => {
+    showReportToast.value = true
+    setTimeout(() => { showReportToast.value = false }, 3000)
+  })
+}
+
+function handleResetProgress() {
+  if (confirm(t('resetConfirm'))) {
     resetProgress()
   }
 }
+
+const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(null)
 </script>
 
 <template>
@@ -128,6 +140,9 @@ function handleResetProgress(){
         </div>
         <button @click="focusAvailable(tree.nodes, isUnlocked, isCompleted)" class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-300 dark:border-gray-600">
           {{ t('focusAvailable') }}
+        </button>
+        <button @click="handleCopyReport" class="px-3 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition border border-blue-200 dark:border-blue-800">
+          {{ t('reportForMentor') }}
         </button>
         <button @click="handleExportPortfolio" :disabled="completedNodes.length === 0" class="px-3 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg transition border border-emerald-200 dark:border-emerald-800 disabled:opacity-30 disabled:cursor-not-allowed">
           {{ t('exportPortfolio') }}
@@ -174,6 +189,12 @@ function handleResetProgress(){
           {{ t('continue') }}
         </button>
       </div>
+    </div>
+    <div v-if="showReportToast" class="fixed bottom-6 right-6 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg transition-opacity z-50">
+      {{ t('reportCopied') }}
+    </div>
+    <div v-if="statusToast" class="fixed bottom-6 right-6 px-4 py-2 rounded-lg shadow-lg transition-opacity z-50 text-white" :class="statusToast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'">
+      {{ statusToast.message }}
     </div>
   </div>
 </template>
