@@ -5,7 +5,7 @@ import svgLoader from 'vite-svg-loader'
 import { resolve } from 'path'
 
 export default defineConfig({
-  base: '/',
+  base: '/trajectory/',
   plugins: [
     vue(),
     svgLoader(),
