@@ -19,7 +19,7 @@ const isDark = ref(document.documentElement.classList.contains('dark'))
 const observer = new MutationObserver(() => { isDark.value = document.documentElement.classList.contains('dark') })
 
 const tree = ref<SkillTree | null>(null)
-const canvasRef = ref<InstanceType<typeof TrackerCanvas> | null>(null)
+const canvasRef = ref<any>(null)
 const svgRef = computed(() => canvasRef.value?.svgRef || null)
 
 const selectedNodeForInfo = ref<string | null>(null)
