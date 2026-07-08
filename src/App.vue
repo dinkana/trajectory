@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useSettingsStore } from '@/stores/settings'
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
 
 const settings = useSettingsStore()
+const router = useRouter()
 const { t } = useI18n()
 
 const isDark = computed(() => {
@@ -32,17 +34,17 @@ function cycleFontSize() {
   <div class="min-h-screen bg-white dark:bg-gray-900 transition-colors text-gray-900 dark:text-gray-100">
     <header class="border-b border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
       <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-2">
-        <router-link to="/" class="text-xl font-bold text-blue-600 dark:text-blue-400">
+        <button @click="router.push('/')" class="text-xl font-bold text-blue-600 dark:text-blue-400">
           {{ t('appTitle') }}
-        </router-link>
+        </button>
         <div class="flex gap-2 items-center flex-wrap">
-          <router-link
+          <button
             v-if="settings.userRole === 'mentor'"
-            to="/methodology"
+            @click="router.push('/methodology')"
             class="px-3 py-1.5 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition"
           >
             {{ t('methodology') }}
-          </router-link>
+          </button>
           <button
             @click="toggleRole"
             class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium transition hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -74,7 +76,7 @@ function cycleFontSize() {
       </div>
     </header>
     <main>
-      <router-view />
+      <router-view/>
     </main>
   </div>
 </template>

@@ -1,153 +1,79 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useI18n } from '@/composables/useI18n'
 import type { SkillTree } from '@/types'
 
-const props = defineProps<{
+const router = useRouter()
+
+defineProps<{
   tree: SkillTree
-  viewBox: { x: number, y: number, w: number, h: number }
-  completedNodes: string[]
-  pulsingEdges: string[]
-  isDark: boolean
+  progress: { done: number; total: number }
+  isMentor: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'node-click', nodeId: string): void
+  (e: 'copy', id: string): void
+  (e: 'share', id: string): void
+  (e: 'export', id: string): void
+  (e: 'qr', id: string): void
+  (e: 'delete', id: string): void
 }>()
 
-const svgRef = ref<SVGSVGElement | null>(null)
-defineExpose({ svgRef })
-
-const NODE_W = 160
-const NODE_H = 48
-
-function getRectEdgePoint(cx: number, cy: number, tx: number, ty: number) {
-  const dx = tx - cx
-  const dy = ty - cy
-  if (dx === 0 && dy === 0) return { x: cx, y: cy }
-  const halfW = NODE_W / 2
-  const halfH = NODE_H / 2
-  let scale = 1
-  if (Math.abs(dx) * halfH > Math.abs(dy) * halfW) {
-    scale = halfW / Math.abs(dx)
-  } else {
-    scale = halfH / Math.abs(dy)
-  }
-  return { x: cx + dx * scale, y: cy + dy * scale }
-}
-
-function getEdgePath(fromId: string, toId: string): string {
-  const fromNode = props.tree.nodes.find(n => n.id === fromId)
-  const toNode = props.tree.nodes.find(n => n.id === toId)
-  if (!fromNode || !toNode) return ''
-  const start = getRectEdgePoint(fromNode.x, fromNode.y, toNode.x, toNode.y)
-  const end = getRectEdgePoint(toNode.x, toNode.y, fromNode.x, fromNode.y)
-  const dx = end.x - start.x
-  const cpOffset = Math.min(Math.abs(dx) * 0.4, 60)
-  const cp1x = start.x + (dx > 0 ? cpOffset : -cpOffset)
-  const cp2x = end.x - (dx > 0 ? cpOffset : -cpOffset)
-  return `M${start.x},${start.y} C${cp1x},${start.y} ${cp2x},${end.y} ${end.x},${end.y}`
-}
-
-function isCompleted(nodeId: string): boolean {
-  return props.completedNodes.includes(nodeId)
-}
-
-function isUnlocked(nodeId: string): boolean {
-  const incoming = props.tree.edges.filter(e => e.to === nodeId)
-  if (incoming.length === 0) return true
-  return incoming.every(e => props.completedNodes.includes(e.from))
-}
-
-function getNodeFill(nodeId: string): string {
-  const node = props.tree.nodes.find(n => n.id === nodeId)
-  if (isCompleted(nodeId)) return '#10b981'
-  if (node?.color) return node.color
-  if (!isUnlocked(nodeId)) return props.isDark ? '#1f2937' : '#f3f4f6'
-  return props.isDark ? '#1f2937' : '#ffffff'
-}
-
-function getNodeStroke(nodeId: string): string {
-  if (isCompleted(nodeId)) return '#059669'
-  const node = props.tree.nodes.find(n => n.id === nodeId)
-  if (node?.color) return node.color
-  if (!isUnlocked(nodeId)) return props.isDark ? '#374151' : '#d1d5db'
-  return '#3b82f6'
-}
-
-function getNodeTextColor(nodeId: string): string {
-  const node = props.tree.nodes.find(n => n.id === nodeId)
-  if (isCompleted(nodeId) || node?.color) return '#ffffff'
-  if (!isUnlocked(nodeId)) return props.isDark ? '#6b7280' : '#9ca3af'
-  return props.isDark ? '#f3f4f6' : '#111827'
-}
+const { t } = useI18n()
 </script>
 
 <template>
-  <svg
-    ref="svgRef"
-    class="w-full h-full touch-none"
-    :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`"
-    overflow="visible"
-  >
-    <rect id="bg-tracker" x="-10000" y="-10000" width="20000" height="20000" fill="transparent" />
-    <defs>
-      <pattern id="grid-tracker" width="40" height="40" patternUnits="userSpaceOnUse">
-        <path d="M 40 0 L 0 0 0 40" fill="none" :stroke="isDark ? '#374151' : '#d1d5db'" stroke-width="0.5" opacity="0.4" />
-      </pattern>
-    </defs>
-    <rect x="-10000" y="-10000" width="20000" height="20000" fill="url(#grid-tracker)" />
+  <div class="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-300 dark:border-gray-700 flex flex-col shadow-sm">
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">{{ tree.title }}</h2>
+    <p class="text-gray-600 dark:text-gray-400 mb-3 line-clamp-2 flex-1">{{ tree.description || t('noDescription') }}</p>
+    
+    <div class="mb-3">
+      <div v-if="progress.done > 0" class="flex items-center gap-2">
+        <div class="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div class="h-full bg-emerald-500 rounded-full transition-all" :style="{ width: `${(progress.done / progress.total) * 100}%` }"></div>
+        </div>
+        <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+          {{ t('studied') }} {{ progress.done }}/{{ progress.total }}
+        </span>
+      </div>
+      <span v-else class="text-xs text-gray-500 dark:text-gray-500">{{ t('notStarted') }}</span>
+    </div>
 
-    <g>
-      <template v-for="edge in tree.edges" :key="edge.id">
-        <path
-          :d="getEdgePath(edge.from, edge.to)"
-          fill="none"
-          :stroke="isCompleted(edge.from) ? (isDark ? '#34d399' : '#10b981') : (isDark ? '#4b5563' : '#9ca3af')"
-          stroke-width="3"
-          stroke-linecap="butt"
-        />
-        <path
-          v-if="pulsingEdges.includes(edge.id)"
-          :d="getEdgePath(edge.from, edge.to)"
-          fill="none"
-          stroke="#34d399"
-          stroke-width="4"
-          stroke-linecap="round"
-          class="edge-pulse"
-        />
-      </template>
-    </g>
-
-    <g
-      v-for="node in tree.nodes"
-      :key="node.id"
-      :transform="`translate(${node.x},${node.y})`"
-      class="transition-transform cursor-pointer"
-      @click.stop="emit('node-click', node.id)"
-    >
-      <rect
-        x="-80" y="-24" width="160" height="48" rx="24"
-        stroke-width="2"
-        :fill="getNodeFill(node.id)"
-        :stroke="getNodeStroke(node.id)"
-      />
-      <text
-        x="0" y="5"
-        text-anchor="middle"
-        class="text-sm font-semibold pointer-events-none select-none"
-        :fill="getNodeTextColor(node.id)"
-      >
-        {{ node.title.length > 18 ? node.title.substring(0, 18) + '...' : node.title }}
-      </text>
-
-      <g v-if="isCompleted(node.id)" transform="translate(60, 0)">
-        <circle cx="0" cy="0" r="10" fill="#ffffff" class="opacity-20" />
-        <path d="M-4 0 L-1 3 L4 -3" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-      </g>
-      <g v-if="!isCompleted(node.id) && !isUnlocked(node.id)" transform="translate(60, 0)" :class="isDark ? 'text-gray-600' : 'text-gray-400'">
-        <rect x="-4.5" y="-1" width="9" height="7" rx="1.5" fill="currentColor" />
-        <path d="M-2.5 -1 V-3.5 A2.5 2.5 0 0 1 2.5 -3.5 V-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-      </g>
-    </g>
-  </svg>
+    <div class="flex items-center gap-2 flex-wrap">
+      <button @click="router.push({ name: 'tracker', params: { id: tree.id } })" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-sm font-medium">
+        {{ t('study') }}
+      </button>
+      <button v-if="isMentor" @click="router.push({ name: 'editor', params: { id: tree.id } })" class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition text-sm font-medium">
+        {{ t('edit') }}
+      </button>
+      
+      <div v-if="isMentor" class="flex items-center gap-1 ml-auto">
+        <button @click="emit('qr', tree.id)" :title="t('generateQR')" class="p-2 text-gray-600 dark:text-gray-400 hover:text-indigo-700 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition border border-transparent hover:border-indigo-300 dark:hover:border-indigo-800">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+          </svg>
+        </button>
+        <button @click="emit('copy', tree.id)" :title="t('copyTree')" class="p-2 text-gray-600 dark:text-gray-400 hover:text-cyan-700 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg transition border border-transparent hover:border-cyan-300 dark:hover:border-cyan-800">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+        </button>
+        <button @click="emit('share', tree.id)" :title="t('share')" class="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition border border-transparent hover:border-blue-300 dark:hover:border-blue-800">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+          </svg>
+        </button>
+        <button @click="emit('export', tree.id)" :title="t('export')" class="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition border border-transparent hover:border-purple-300 dark:hover:border-purple-800">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+        </button>
+        <button @click="emit('delete', tree.id)" :title="t('delete')" class="p-2 text-gray-600 dark:text-gray-400 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition border border-transparent hover:border-red-300 dark:hover:border-red-800">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
