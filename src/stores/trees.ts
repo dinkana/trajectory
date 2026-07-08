@@ -6,33 +6,31 @@ import { presetTrees } from '@/data/presetTrees'
 function generateUniqueName(baseName: string, existingNames: string[]): string {
   if (!existingNames.includes(baseName)) return baseName
   let counter = 1
-  while (existingNames.includes(`${baseName} ${counter}`)) {
+  while (existingNames.includes(`${baseName}${counter}`)) {
     counter++
   }
-  return `${baseName} ${counter}`
+  return `${baseName}${counter}`
 }
 
 export const useTreesStore = defineStore('trees', () => {
   const stored = localStorage.getItem('trees')
   const storedTrees: SkillTree[] = stored ? JSON.parse(stored) : []
   const storedIds = new Set(storedTrees.map(t => t.id))
-
+  
   const initialTrees = [
     ...presetTrees.filter(t => !storedIds.has(t.id)),
     ...storedTrees
   ]
-
+  
   const trees = ref<SkillTree[]>(initialTrees)
-  const completedNodes = ref<Record<string, string[]>>(
-    JSON.parse(localStorage.getItem('progress') || '{}')
-  )
+  const completedNodes = ref<Record<string, string[]>>(JSON.parse(localStorage.getItem('progress') || '{}'))
 
   function safeSave(key: string, data: any) {
     try {
       localStorage.setItem(key, JSON.stringify(data))
     } catch (e) {
       if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-        alert('Хранилище браузера переполнено. Экспортируйте данные и удалите ненужные сценарии.')
+        alert('Хранилище браузера переполнено. Экспортируйте данные и удалите ненужные маршруты.')
       }
     }
   }
@@ -103,11 +101,9 @@ export const useTreesStore = defineStore('trees', () => {
     try {
       const data = JSON.parse(json)
       if (!data || !Array.isArray(data.trees)) return false
-      
       data.trees.forEach((tree: SkillTree) => {
         addTree({ ...tree })
       })
-      
       return true
     } catch {
       return false
@@ -117,25 +113,32 @@ export const useTreesStore = defineStore('trees', () => {
   function generateFullReport(): string {
     const treesWithProgress = trees.value.filter(t => getProgress(t.id).length > 0)
     if (treesWithProgress.length === 0) return ''
-    
-    let report = `ОТЧЕТ О ПРОХОЖДЕНИИ ТРАЕКТОРИЙ\n`
-    report += `Дата: ${new Date().toLocaleDateString('ru-RU')}\n`
-    report += `Количество сценариев: ${treesWithProgress.length}\n\n`
-    
+
+    let report = `АНАЛИТИЧЕСКИЙ ОТЧЕТ\nО РЕАЛИЗАЦИИ ИНДИВИДУАЛЬНЫХ ПРОГРАММ СОЦИАЛЬНОГО СОПРОВОЖДЕНИЯ\n`
+    report += `Дата формирования: ${new Date().toLocaleDateString('ru-RU')}\n`
+    report += `Количество подопечных, прошедших маршруты адаптации: ${treesWithProgress.length}\n\n`
+
     treesWithProgress.forEach((tree, idx) => {
       const completed = tree.nodes.filter(n => getProgress(tree.id).includes(n.id))
-      report += `${idx + 1}. ${tree.title}\n`
-      report += `   Прогресс: ${completed.length} из ${tree.nodes.length} шагов\n`
+      const totalNodes = tree.nodes.length
+      const percent = Math.round((completed.length / totalNodes) * 100)
+      
+      report += `---\n`
+      report += `Программа ${idx + 1}: ${tree.title}\n`
+      report += `Статус: ${percent}% (${completed.length} из ${totalNodes} этапов)\n`
+      
       if (completed.length > 0) {
-        report += `   Выполненные шаги:\n`
+        report += `Освоенные социальные компетенции:\n`
         completed.forEach((n, i) => {
-          report += `     ${i + 1}. ${n.title}\n`
+          report += `  ${i + 1}. ${n.title}\n`
         })
       }
       report += `\n`
     })
     
-    report += `Документ сформирован в приложении «Траектория».`
+    report += `---\n`
+    report += `Документ сформирован автоматически в системе «Траектория».\n`
+    report += `Используется для подтверждения социального эффекта и количественных показателей грантовой отчетности.`
     return report
   }
 

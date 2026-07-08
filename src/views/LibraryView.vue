@@ -24,7 +24,6 @@ const { t } = useI18n()
 const { canInstall, isIOS, install } = useInstallPrompt()
 
 const showImportModal = ref(false)
-const showShareToast = ref(false)
 const showDeleteConfirm = ref<string | null>(null)
 const searchQuery = ref('')
 const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -70,8 +69,8 @@ function shareTree(id: string) {
   if (!tree) return
   const code = encodeData(tree)
   navigator.clipboard.writeText(`${window.location.origin}?data=${code}`)
-  showShareToast.value = true
-  setTimeout(() => { showShareToast.value = false }, 2000)
+  statusToast.value = { message: t('copied'), type: 'success' }
+  setTimeout(() => { statusToast.value = null }, 2000)
 }
 
 function generateQR(id: string) {
@@ -106,7 +105,7 @@ function exportAllScenarios() {
   const url = URL.createObjectURL(dataBlob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `trajectory-all-${new Date().toISOString().split('T')[0]}.json`
+  link.download = `trajector-all-${new Date().toISOString().split('T')[0]}.json`
   link.click()
   URL.revokeObjectURL(url)
 }
@@ -122,10 +121,7 @@ function handleProgressFileSelect(event: Event) {
   const reader = new FileReader()
   reader.onload = (e) => {
     const success = treesStore.importAllScenarios(e.target?.result as string)
-    statusToast.value = {
-      message: success ? t('progressImported') : t('progressImportError'),
-      type: success ? 'success' : 'error'
-    }
+    statusToast.value = { message: success ? t('progressImported') : t('progressImportError'), type: success ? 'success' : 'error' }
     setTimeout(() => { statusToast.value = null }, 2500)
   }
   reader.readAsText(file)
@@ -179,9 +175,11 @@ onMounted(() => {
 <template>
   <div class="p-4 sm:p-8 max-w-4xl mx-auto">
     <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
-      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{{ t('library') }}</h1>
-      <LibraryHeader 
-        :can-install="canInstall" 
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+        {{ t('library') }}
+      </h1>
+      <LibraryHeader
+        :can-install="canInstall"
         :is-mentor="isMentor"
         @install="handleInstall"
         @create="createNew"
@@ -194,20 +192,30 @@ onMounted(() => {
     </div>
 
     <div class="mb-6">
-      <input v-model="searchQuery" :placeholder="t('searchPlaceholder')" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none" />
+      <input
+        v-model="searchQuery"
+        :placeholder="t('searchPlaceholder')"
+        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
+      />
     </div>
 
-    <input ref="progressFileInput" type="file" accept=".json" class="hidden" @change="handleProgressFileSelect"/>
+    <input ref="progressFileInput" type="file" accept=".json" class="hidden" @change="handleProgressFileSelect" />
 
-    <EmptyLibrary v-if="filteredTrees.length === 0 && treesStore.trees.length === 0" :is-mentor="isMentor" @quick-start="quickStart" @import="showImportModal = true" />
+    <EmptyLibrary
+      v-if="filteredTrees.length === 0 && treesStore.trees.length === 0"
+      :is-mentor="isMentor"
+      @quick-start="quickStart"
+      @import="showImportModal = true"
+    />
+
     <p v-else-if="filteredTrees.length === 0" class="text-center py-12 text-gray-500 dark:text-gray-400">Ничего не найдено</p>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <TreeCard 
-        v-for="tree in filteredTrees" 
-        :key="tree.id" 
-        :tree="tree" 
-        :progress="getProgress(tree)" 
+      <TreeCard
+        v-for="tree in filteredTrees"
+        :key="tree.id"
+        :tree="tree"
+        :progress="getProgress(tree)"
         :is-mentor="isMentor"
         @copy="copyTree"
         @share="shareTree"
@@ -218,7 +226,8 @@ onMounted(() => {
     </div>
 
     <footer class="w-full text-center text-xs text-gray-500 dark:text-gray-400 mt-10 pt-4 pb-6 border-t border-gray-300 dark:border-gray-700">
-      Социальный навигатор «Траектория»<br>Для сотрудничества:
+      Социальный навигатор «Траектория»<br>
+      Для сотрудничества:
       <a href="https://t.me/din_kana" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">Telegram</a> ·
       <a href="mailto:1984clients@gmail.com" class="text-blue-600 dark:text-blue-400 hover:underline">Почта</a>
     </footer>
@@ -229,7 +238,8 @@ onMounted(() => {
     <DeleteConfirmModal v-if="showDeleteConfirm" @confirm="deleteTree" @cancel="showDeleteConfirm = null" />
     <IosInstallModal v-if="showIosInstallModal" @close="showIosInstallModal = false" />
 
-    <div v-if="showShareToast" class="fixed bottom-6 right-6 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg transition-opacity z-50">{{ t('copied') }}</div>
-    <div v-if="statusToast" class="fixed bottom-6 right-6 px-4 py-2 rounded-lg shadow-lg transition-opacity z-50 text-white" :class="statusToast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'">{{ statusToast.message }}</div>
+    <div v-if="statusToast" class="fixed bottom-6 right-6 px-4 py-2 rounded-lg shadow-lg transition-opacity z-50 text-white" :class="statusToast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'">
+      {{ statusToast.message }}
+    </div>
   </div>
 </template>

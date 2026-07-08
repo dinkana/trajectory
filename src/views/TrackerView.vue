@@ -25,6 +25,7 @@ const canvasRef = ref<InstanceType<typeof TrackerCanvas> | null>(null)
 const svgRef = computed(() => canvasRef.value?.svgRef || null)
 const selectedNodeForInfo = ref<string | null>(null)
 const showReportToast = ref(false)
+const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(null)
 
 const { viewBox, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel, handleTouchStart, handleTouchMove, handleTouchEnd, focusAvailable } = useCanvasNavigation(svgRef)
 const { completedNodes, showWinModal, pulsingEdges, hoursPerDay, remainingHours, totalHours, completionDate, progress, initProgress, isUnlocked, isCompleted, toggleNode, resetProgress, updateHoursPerDay, generateTextReport } = useTreeProgress(tree)
@@ -39,8 +40,10 @@ onMounted(() => {
   const id = route.params.id as string
   const found = treesStore.getTreeById(id)
   if (!found) { router.replace({ name: 'library' }); return }
+  
   tree.value = found
   initProgress()
+  
   if (tree.value.nodes.length > 0) {
     const xs = tree.value.nodes.map(n => n.x)
     const ys = tree.value.nodes.map(n => n.y)
@@ -55,14 +58,8 @@ onMounted(() => {
 
 onUnmounted(() => { observer.disconnect() })
 
-function handleBgClick() {
-  selectedNodeForInfo.value = null
-}
-
-function handleNodeClick(nodeId: string) {
-  selectedNodeForInfo.value = nodeId
-}
-
+function handleBgClick() { selectedNodeForInfo.value = null }
+function handleNodeClick(nodeId: string) { selectedNodeForInfo.value = nodeId }
 function handleToggleNode() {
   if (selectedNodeForInfo.value) {
     toggleNode(selectedNodeForInfo.value)
@@ -71,9 +68,7 @@ function handleToggleNode() {
 }
 
 async function handleExportPortfolio() {
-  if (tree.value) {
-    await exportPortfolioToPng(tree.value, completedNodes.value, isDark.value)
-  }
+  if (tree.value) await exportPortfolioToPng(tree.value, completedNodes.value, isDark.value)
 }
 
 function handleCopyReport() {
@@ -90,12 +85,8 @@ function handleCopyReport() {
 }
 
 function handleResetProgress() {
-  if (confirm(t('resetConfirm'))) {
-    resetProgress()
-  }
+  if (confirm(t('resetConfirm'))) resetProgress()
 }
-
-const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(null)
 </script>
 
 <template>
@@ -105,6 +96,7 @@ const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(n
         <button @click="router.push({ name: 'library' })" class="px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-300 dark:border-gray-600">
           {{ t('trackerBack') }}
         </button>
+        
         <div class="flex-1 min-w-[200px]">
           <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ tree.title }}</h1>
           <div class="flex items-center gap-3 mt-1">
@@ -115,6 +107,7 @@ const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(n
               {{ completedNodes.length }}/{{ tree.nodes.length }} ({{ progress }}%)
             </span>
           </div>
+          
           <div class="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
             <span v-if="totalHours > 0" class="flex items-center gap-1">
               ⏱ <span class="font-medium">{{ t('totalTime') }}:</span> {{ totalHours }}{{ t('hours') }}
@@ -138,6 +131,7 @@ const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(n
             </span>
           </div>
         </div>
+
         <button @click="focusAvailable(tree.nodes, isUnlocked, isCompleted)" class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-300 dark:border-gray-600">
           {{ t('focusAvailable') }}
         </button>
@@ -152,6 +146,7 @@ const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(n
         </button>
       </div>
     </div>
+
     <div
       class="flex-1 overflow-hidden relative cursor-grab active:cursor-grabbing touch-none"
       @mousedown="(e) => handleMouseDown(e, handleBgClick)"
@@ -173,6 +168,7 @@ const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(n
         @node-click="handleNodeClick"
       />
     </div>
+
     <NodeInfoPanel
       :node-data="selectedNodeData"
       :is-unlocked="selectedNodeForInfo ? isUnlocked(selectedNodeForInfo) : false"
@@ -180,6 +176,7 @@ const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(n
       @close="selectedNodeForInfo = null"
       @toggle="handleToggleNode"
     />
+
     <div v-if="showWinModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
       <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center border border-gray-300 dark:border-gray-700 animate-win-modal">
         <div class="text-6xl mb-4">🏆</div>
@@ -190,9 +187,11 @@ const statusToast = ref<{ message: string; type: 'success' | 'error' } | null>(n
         </button>
       </div>
     </div>
+
     <div v-if="showReportToast" class="fixed bottom-6 right-6 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg transition-opacity z-50">
       {{ t('reportCopied') }}
     </div>
+
     <div v-if="statusToast" class="fixed bottom-6 right-6 px-4 py-2 rounded-lg shadow-lg transition-opacity z-50 text-white" :class="statusToast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'">
       {{ statusToast.message }}
     </div>

@@ -91,7 +91,7 @@ export async function exportPortfolioToPng(tree: SkillTree, completedNodes: stri
   headerText.setAttribute("font-size", "28")
   headerText.setAttribute("font-weight", "bold")
   headerText.setAttribute("font-family", "system-ui, -apple-system, sans-serif")
-  headerText.textContent = tree.title
+  headerText.textContent = 'Траектория: Портфолио компетенций'
   tempSvg.appendChild(headerText)
 
   const dateText = document.createElementNS("http://www.w3.org/2000/svg", "text")
@@ -100,7 +100,7 @@ export async function exportPortfolioToPng(tree: SkillTree, completedNodes: stri
   dateText.setAttribute("fill", isDark ? "#9ca3af" : "#6b7280")
   dateText.setAttribute("font-size", "16")
   dateText.setAttribute("font-family", "system-ui, -apple-system, sans-serif")
-  dateText.textContent = `SkillTree Portfolio • ${new Date().toLocaleDateString()}`
+  dateText.textContent = `Социальный навигатор • ${new Date().toLocaleDateString()}`
   tempSvg.appendChild(dateText)
 
   const edgesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g")
@@ -108,7 +108,6 @@ export async function exportPortfolioToPng(tree: SkillTree, completedNodes: stri
     const fromNode = filteredNodes.find(n => n.id === edge.from)
     const toNode = filteredNodes.find(n => n.id === edge.to)
     if (!fromNode || !toNode) return
-
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
     path.setAttribute("d", getEdgePath(fromNode.x, fromNode.y, toNode.x, toNode.y))
     path.setAttribute("fill", "none")
@@ -148,7 +147,6 @@ export async function exportPortfolioToPng(tree: SkillTree, completedNodes: stri
 
     const checkG = document.createElementNS("http://www.w3.org/2000/svg", "g")
     checkG.setAttribute("transform", "translate(60, 0)")
-    
     const checkCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
     checkCircle.setAttribute("cx", "0")
     checkCircle.setAttribute("cy", "0")
@@ -156,9 +154,8 @@ export async function exportPortfolioToPng(tree: SkillTree, completedNodes: stri
     checkCircle.setAttribute("fill", "#ffffff")
     checkCircle.setAttribute("opacity", "0.2")
     checkG.appendChild(checkCircle)
-
     const checkPath = document.createElementNS("http://www.w3.org/2000/svg", "path")
-    checkPath.setAttribute("d", "M-4 0 L-1 3 L4-3")
+    checkPath.setAttribute("d", "M-4 0 L-1 3 L4 -3")
     checkPath.setAttribute("stroke", "#ffffff")
     checkPath.setAttribute("stroke-width", "2")
     checkPath.setAttribute("fill", "none")
@@ -178,7 +175,6 @@ export async function exportPortfolioToPng(tree: SkillTree, completedNodes: stri
   canvas.height = height * scale
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-  
   ctx.scale(scale, scale)
 
   const img = new Image()
@@ -193,8 +189,6 @@ export async function exportPortfolioToPng(tree: SkillTree, completedNodes: stri
     link.href = canvas.toDataURL('image/png')
     link.click()
   }
-  img.onerror = () => {
-    URL.revokeObjectURL(url)
-  }
+  img.onerror = () => { URL.revokeObjectURL(url) }
   img.src = url
 }

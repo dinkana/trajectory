@@ -89,65 +89,64 @@ function getNodeTextColor(nodeId: string): string {
     :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`"
     overflow="visible"
   >
-    <rect id="bg-tracker" x="-10000" y="-10000" width="20000" height="20000" fill="transparent"/>
+    <rect id="bg-tracker" x="-10000" y="-10000" width="20000" height="20000" fill="transparent" />
     <defs>
       <pattern id="grid-tracker" width="40" height="40" patternUnits="userSpaceOnUse">
-        <path d="M 40 0 L 0 0 0 40" fill="none" :stroke="isDark ? '#374151' : '#d1d5db'" stroke-width="0.5" opacity="0.4"/>
+        <path d="M 40 0 L 0 0 0 40" fill="none" :stroke="isDark ? '#374151' : '#d1d5db'" stroke-width="0.5" opacity="0.4" />
       </pattern>
     </defs>
     <rect x="-10000" y="-10000" width="20000" height="20000" fill="url(#grid-tracker)" />
-    
+
     <g>
       <template v-for="edge in tree.edges" :key="edge.id">
-        <path 
-          :d="getEdgePath(edge.from, edge.to)" 
-          fill="none" 
+        <path
+          :d="getEdgePath(edge.from, edge.to)"
+          fill="none"
           :stroke="isCompleted(edge.from) ? (isDark ? '#34d399' : '#10b981') : (isDark ? '#4b5563' : '#9ca3af')"
-          stroke-width="3" 
+          stroke-width="3"
           stroke-linecap="butt"
         />
-        <path 
+        <path
           v-if="pulsingEdges.includes(edge.id)"
-          :d="getEdgePath(edge.from, edge.to)" 
-          fill="none" 
-          stroke="#34d399" 
-          stroke-width="4" 
-          stroke-linecap="round" 
+          :d="getEdgePath(edge.from, edge.to)"
+          fill="none"
+          stroke="#34d399"
+          stroke-width="4"
+          stroke-linecap="round"
           class="edge-pulse"
         />
       </template>
     </g>
 
-    <g 
-      v-for="node in tree.nodes" 
-      :key="node.id" 
-      :transform="`translate(${node.x},${node.y})`" 
+    <g
+      v-for="node in tree.nodes"
+      :key="node.id"
+      :transform="`translate(${node.x},${node.y})`"
       class="transition-transform cursor-pointer"
       @click.stop="emit('node-click', node.id)"
     >
-      <rect 
-        x="-80" y="-24" width="160" height="48" rx="24" 
-        stroke-width="2" 
-        :fill="getNodeFill(node.id)" 
+      <rect
+        x="-80" y="-24" width="160" height="48" rx="24"
+        stroke-width="2"
+        :fill="getNodeFill(node.id)"
         :stroke="getNodeStroke(node.id)"
       />
-      <text 
-        x="0" y="5" 
-        text-anchor="middle" 
+      <text
+        x="0" y="5"
+        text-anchor="middle"
         class="text-sm font-semibold pointer-events-none select-none"
         :fill="getNodeTextColor(node.id)"
       >
         {{ node.title.length > 18 ? node.title.substring(0, 18) + '...' : node.title }}
       </text>
-      
+
       <g v-if="isCompleted(node.id)" transform="translate(60, 0)">
-        <circle cx="0" cy="0" r="10" fill="#ffffff" class="opacity-20"/>
-        <path d="M-4 0 L-1 3 L4-3" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="0" cy="0" r="10" fill="#ffffff" class="opacity-20" />
+        <path d="M-4 0 L-1 3 L4 -3" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
       </g>
-      
       <g v-if="!isCompleted(node.id) && !isUnlocked(node.id)" transform="translate(60, 0)" :class="isDark ? 'text-gray-600' : 'text-gray-400'">
         <rect x="-4.5" y="-1" width="9" height="7" rx="1.5" fill="currentColor" />
-        <path d="M-2.5-1 V-3.5 A2.5 2.5 0 0 1 2.5-3.5 V-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M-2.5 -1 V-3.5 A2.5 2.5 0 0 1 2.5 -3.5 V-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
       </g>
     </g>
   </svg>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useSettingsStore } from '@/stores/settings'
-import { onMounted, computed } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 
 const settings = useSettingsStore()
@@ -13,10 +13,6 @@ const isDark = computed(() => {
   return settings.theme === 'dark'
 })
 
-onMounted(() => {
-  settings.setTheme(settings.theme)
-})
-
 function toggleTheme() {
   settings.setTheme(isDark.value ? 'light' : 'dark')
 }
@@ -24,19 +20,25 @@ function toggleTheme() {
 function toggleRole() {
   settings.setUserRole(settings.userRole === 'mentor' ? 'student' : 'mentor')
 }
+
+function cycleFontSize() {
+  const sizes: ('base' | 'lg' | 'xl')[] = ['base', 'lg', 'xl']
+  const idx = sizes.indexOf(settings.fontSize)
+  settings.setFontSize(sizes[(idx + 1) % sizes.length])
+}
 </script>
 
 <template>
-  <div class="min-h-screen bg-white dark:bg-gray-900 transition-colors">
+  <div class="min-h-screen bg-white dark:bg-gray-900 transition-colors text-gray-900 dark:text-gray-100">
     <header class="border-b border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-      <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-2">
         <router-link to="/" class="text-xl font-bold text-blue-600 dark:text-blue-400">
           {{ t('appTitle') }}
         </router-link>
-        <div class="flex gap-3 items-center">
-          <router-link 
-            v-if="settings.userRole === 'mentor'" 
-            to="/methodology" 
+        <div class="flex gap-2 items-center flex-wrap">
+          <router-link
+            v-if="settings.userRole === 'mentor'"
+            to="/methodology"
             class="px-3 py-1.5 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition"
           >
             {{ t('methodology') }}
@@ -47,6 +49,15 @@ function toggleRole() {
             :class="settings.userRole === 'mentor' ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'"
           >
             {{ settings.userRole === 'mentor' ? t('roleMentor') : t('roleStudent') }}
+          </button>
+          <button
+            @click="cycleFontSize"
+            class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium transition hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+            :title="t('accessibility')"
+          >
+            <span v-if="settings.fontSize === 'base'">A</span>
+            <span v-else-if="settings.fontSize === 'lg'" class="text-lg font-bold">A</span>
+            <span v-else class="text-xl font-bold">A</span>
           </button>
           <button
             @click="toggleTheme"
@@ -63,7 +74,7 @@ function toggleRole() {
       </div>
     </header>
     <main>
-      <router-view/>
+      <router-view />
     </main>
   </div>
 </template>

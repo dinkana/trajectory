@@ -3,8 +3,8 @@ import type { SkillTree } from '@/types';
 export const presetTrees: SkillTree[] = [
   {
     id: 'social-adaptation',
-    title: 'Адаптация после выпуска',
-    description: 'Базовые шаги для самостоятельной жизни после детского дома.',
+    title: 'Постинтернатная адаптация',
+    description: 'Базовые шаги для самостоятельной жизни после выпуска из организаций для детей-сирот.',
     nodes: [
       { id: 's1', title: 'Паспорт и документы', x: 100, y: 100, timeHours: 2, description: 'Восстановление или получение паспорта после выпуска.', resources: [{ title: 'Госуслуги - получение паспорта', url: 'https://www.gosuslugi.ru/191004', type: 'docs' }, { title: 'МФЦ - список документов', url: 'https://www.mfc.ru', type: 'docs' }] },
       { id: 's2', title: 'Регистрация по месту жительства', x: 300, y: 100, timeHours: 1, description: 'Оформление прописки или временной регистрации.', resources: [{ title: 'Госуслуги - регистрация', url: 'https://www.gosuslugi.ru/12677', type: 'docs' }] },
@@ -21,7 +21,7 @@ export const presetTrees: SkillTree[] = [
   },
   {
     id: 'social-finance',
-    title: 'Базовая финансовая защита',
+    title: 'Финансовая безопасность выпускника',
     description: 'Умение управлять деньгами и не попасть в долговую яму.',
     nodes: [
       { id: 'f1', title: 'Бюджет и учет расходов', x: 100, y: 100, timeHours: 2, description: 'Планирование доходов и расходов, ведение учета.', resources: [{ title: 'Финансовая культура ЦБ РФ', url: 'https://fincult.info', type: 'course' }, { title: 'Приложение для учета бюджета', url: 'https://www.gosuslugi.ru', type: 'tool' }] },
@@ -38,11 +38,11 @@ export const presetTrees: SkillTree[] = [
   },
   {
     id: 'social-profession',
-    title: 'Поиск профессии',
-    description: 'Выбор пути и первые шаги в карьере.',
+    title: 'Профориентация и трудоустройство',
+    description: 'Выбор пути и первые шаги в карьере для подростков в ТЖС.',
     nodes: [
       { id: 'p1', title: 'Профориентация', x: 100, y: 100, timeHours: 3, description: 'Тесты на профориентацию, анализ интересов и способностей.', resources: [{ title: 'Атлас профессий', url: 'https://atlas100.ru', type: 'tool' }, { title: 'Билет в будущее', url: 'https://bilet.worldskills.ru', type: 'course' }] },
-      { id: 'p2', title: 'Обучение и курсы', x: 300, y: 100, timeHours: 4, description: 'Бесплатные курсы, колледжи, программы наставничества.', resources: [{ title: 'Универсарium', url: 'https://universarium.org', type: 'course' }, { title: 'Открытое образование', url: 'https://openedu.ru', type: 'course' }] },
+      { id: 'p2', title: 'Обучение и курсы', x: 300, y: 100, timeHours: 4, description: 'Бесплатные курсы, колледжи, программы наставничества.', resources: [{ title: 'Универсариум', url: 'https://universarium.org', type: 'course' }, { title: 'Открытое образование', url: 'https://openedu.ru', type: 'course' }] },
       { id: 'p3', title: 'Составление резюме', x: 500, y: 100, timeHours: 2, description: 'Как составить первое резюме без опыта работы.', resources: [{ title: 'Хабр Карьера', url: 'https://career.habr.com', type: 'article' }, { title: 'SuperJob - советы', url: 'https://www.superjob.ru', type: 'article' }] },
       { id: 'p4', title: 'Подготовка к собеседованию', x: 200, y: 250, timeHours: 2, description: 'Как проходить интервью, какие вопросы задают.', resources: [{ title: 'HeadHunter - советы', url: 'https://hh.ru', type: 'article' }] },
       { id: 'p5', title: 'Трудовой договор', x: 400, y: 250, timeHours: 2, description: 'Чтение и понимание трудового договора, права работника.', resources: [{ title: 'Трудовой кодекс РФ', url: 'http://www.kremlin.ru', type: 'docs' }, { title: 'Трудовая инспекция', url: 'https://www.rostrud.ru', type: 'docs' }] }
@@ -55,7 +55,7 @@ export const presetTrees: SkillTree[] = [
   },
   {
     id: 'social-legal',
-    title: 'Основы права',
+    title: 'Правовая грамотность несовершеннолетних',
     description: 'Знание своих прав и взаимодействие с госорганами.',
     nodes: [
       { id: 'l1', title: 'Права несовершеннолетних', x: 100, y: 100, timeHours: 2, description: 'Основные права детей и подростков по закону.', resources: [{ title: 'Уполномоченный по правам ребенка', url: 'https://deti.gov.ru', type: 'docs' }] },
@@ -70,7 +70,7 @@ export const presetTrees: SkillTree[] = [
   },
   {
     id: 'social-crisis',
-    title: 'Экстренная помощь',
+    title: 'Экстренная помощь и кризисные ситуации',
     description: 'Алгоритмы действий в критических ситуациях. Куда звонить и идти.',
     nodes: [
       { id: 'c1', title: 'Телефоны доверия', x: 100, y: 100, timeHours: 0.5, description: 'Бесплатная анонимная психологическая помощь.', resources: [{ title: 'Общероссийский телефон доверия 8-800-2000-122', url: 'https://telefon-doveria.ru', type: 'docs' }] },

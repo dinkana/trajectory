@@ -10,6 +10,7 @@ export function useTreeProgress(tree: Ref<SkillTree | null>) {
   const completedNodes = ref<string[]>([])
   const showWinModal = ref(false)
   const pulsingEdges = ref<string[]>([])
+  
   const hoursPerDay = ref(Number(localStorage.getItem('hoursPerDay')) || 1)
 
   const remainingHours = computed(() => {
@@ -30,7 +31,9 @@ export function useTreeProgress(tree: Ref<SkillTree | null>) {
     const date = new Date()
     date.setDate(date.getDate() + daysNeeded)
     return date.toLocaleDateString(settings.locale === 'ru' ? 'ru-RU' : 'en-US', {
-      day: '2-digit', month: 'long', year: 'numeric'
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
     })
   })
 
@@ -89,17 +92,17 @@ export function useTreeProgress(tree: Ref<SkillTree | null>) {
   function generateTextReport(): string {
     if (!tree.value) return ''
     const completed = tree.value.nodes.filter(n => completedNodes.value.includes(n.id))
-    if (completed.length === 0) return 'Нет пройденных шагов.'
-    
-    let report = `ОТЧЕТ О ПРОХОЖДЕНИИ ТРАЕКТОРИИ\n`
-    report += `Сценарий: ${tree.value.title}\n`
-    report += `Дата: ${new Date().toLocaleDateString('ru-RU')}\n`
-    report += `Прогресс: ${completed.length} из ${tree.value.nodes.length} шагов\n\n`
-    report += `Выполненные шаги:\n`
+    if (completed.length === 0) return 'Нет освоенных этапов.'
+
+    let report = `ОТЧЕТ ОБ ОСВОЕНИИ МАРШРУТА АДАПТАЦИИ\n`
+    report += `Индивидуальная программа: ${tree.value.title}\n`
+    report += `Дата формирования: ${new Date().toLocaleDateString('ru-RU')}\n`
+    report += `Прогресс: ${completed.length} из ${tree.value.nodes.length} этапов\n\n`
+    report += `Освоенные социальные компетенции:\n`
     completed.forEach((n, i) => {
       report += `${i + 1}. ${n.title}\n`
     })
-    report += `\nДокумент сформирован в приложении «Траектория».`
+    report += `\nДокумент сформирован в системе «Траектория» для подтверждения социального эффекта.`
     return report
   }
 

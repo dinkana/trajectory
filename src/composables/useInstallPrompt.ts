@@ -25,35 +25,17 @@ export function useInstallPrompt() {
   function handleBeforeInstallPrompt(e: Event) {
     e.preventDefault()
     deferredPrompt = e as BeforeInstallPromptEvent
-    if (!checkDisplayMode()) {
-      canInstall.value = true
-    }
+    if (!checkDisplayMode()) canInstall.value = true
   }
 
-  function handleAppInstalled() {
-    canInstall.value = false
-    deferredPrompt = null
-  }
+  function handleAppInstalled() { canInstall.value = false; deferredPrompt = null }
 
-  function handleDisplayModeChange() {
-    if (checkDisplayMode()) {
-      canInstall.value = false
-    }
-  }
+  function handleDisplayModeChange() { if (checkDisplayMode()) canInstall.value = false }
 
   onMounted(() => {
     isIOS.value = checkIOS()
-    
-    if (checkDisplayMode()) {
-      canInstall.value = false
-      return
-    }
-
-    if (isIOS.value) {
-      canInstall.value = true
-      return
-    }
-
+    if (checkDisplayMode()) { canInstall.value = false; return }
+    if (isIOS.value) { canInstall.value = true; return }
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     window.addEventListener('appinstalled', handleAppInstalled)
     window.matchMedia('(display-mode: standalone)').addEventListener('change', handleDisplayModeChange)
@@ -69,9 +51,7 @@ export function useInstallPrompt() {
     if (!deferredPrompt) return false
     await deferredPrompt.prompt()
     const { outcome } = await deferredPrompt.userChoice
-    if (outcome === 'accepted') {
-      canInstall.value = false
-    }
+    if (outcome === 'accepted') canInstall.value = false
     deferredPrompt = null
     return outcome === 'accepted'
   }
