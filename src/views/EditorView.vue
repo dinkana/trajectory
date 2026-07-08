@@ -215,7 +215,7 @@ onBeforeRouteLeave((_to, _from, next) => {
     <TreeSettingsModal 
       :show="showMetaModal"
       :title="tree.title"
-      :description="tree.description"
+      :description="tree.description || ''"
       @update:show="showMetaModal = $event"
       @update:title="tree.title = $event; isDirty = true"
       @update:description="tree.description = $event; isDirty = true"

@@ -10,7 +10,7 @@ defineProps<{
   resourcesDraft: { title: string, url: string, type: string }[]
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'update:show', val: boolean): void
   (e: 'update:titleDraft', val: string): void
   (e: 'update:descDraft', val: string): void

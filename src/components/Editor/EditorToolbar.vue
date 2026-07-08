@@ -10,7 +10,7 @@ defineProps<{
   selectedNodeColor: string | undefined
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'undo'): void
   (e: 'toggle-creating'): void
   (e: 'auto-layout'): void

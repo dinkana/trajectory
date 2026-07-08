@@ -13,7 +13,7 @@ defineProps<{
   getEdgePath: (from: string, to: string) => string
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'canvas-mousedown', event: MouseEvent): void
   (e: 'node-mousedown', event: MouseEvent, node: any): void
   (e: 'handle-mousedown', event: MouseEvent, node: any): void

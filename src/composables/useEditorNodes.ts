@@ -1,5 +1,5 @@
 import { ref, computed, type Ref } from 'vue'
-import type { SkillTree, SkillNode, Resource } from '@/types'
+import type { SkillTree, Resource } from '@/types'
 
 export function useEditorNodes(
   tree: Ref<SkillTree>,

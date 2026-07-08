@@ -9,7 +9,7 @@ defineProps<{
   historyLength: number
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'toggle-creating'): void
   (e: 'auto-layout'): void
   (e: 'undo'): void

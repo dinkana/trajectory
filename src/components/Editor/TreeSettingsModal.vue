@@ -4,10 +4,10 @@ import { useI18n } from '@/composables/useI18n'
 defineProps<{
   show: boolean
   title: string
-  description: string
+  description?: string
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'update:show', val: boolean): void
   (e: 'update:title', val: string): void
   (e: 'update:description', val: string): void
